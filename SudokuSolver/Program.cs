@@ -136,6 +136,7 @@ namespace SudokuSolver
 			//Console.Clear();
 	  //      Console.WriteLine();
 
+	        PrintGrid();
 			foreach (var row in ValidCellIndexes)
 	        {
 		        foreach (var column in ValidCellIndexes)
@@ -160,17 +161,69 @@ namespace SudokuSolver
 				//0x77 w ┬
 				//0x78 x │
 			}
+        }
+
+	    const int RowMultiplier = 4;
+	    const int ColumnMultiplier = 8;
+
+		private static void PrintGrid()
+		{
+			var lines = new[]
+			{
+				"╔═══════╤═══════╤═══════╦═══════╤═══════╤═══════╦═══════╤═══════╤═══════╗",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"╟───────┼───────┼───────╫───────┼───────┼───────╫───────┼───────┼───────╢",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"╟───────┼───────┼───────╫───────┼───────┼───────╫───────┼───────┼───────╢",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"╟═══════╪═══════╪═══════╬═══════╪═══════╪═══════╬═══════╪═══════╪═══════╣",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"╟───────┼───────┼───────╫───────┼───────┼───────╫───────┼───────┼───────╢",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"╟───────┼───────┼───────╫───────┼───────┼───────╫───────┼───────┼───────╢",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"╟═══════╪═══════╪═══════╬═══════╪═══════╪═══════╬═══════╪═══════╪═══════╣",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"╟───────┼───────┼───────╫───────┼───────┼───────╫───────┼───────┼───────╢",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"╟───────┼───────┼───────╫───────┼───────┼───────╫───────┼───────┼───────╢",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"║       │       │       ║       │       │       ║       │       │       ║",
+				"╚═══════╧═══════╧═══════╩═══════╧═══════╧═══════╩═══════╧═══════╧═══════╝",
+			};
+			var foregroundColor = Console.ForegroundColor;
+			Console.ForegroundColor = ConsoleColor.Yellow;
+			foreach (var line in lines)
+				Console.WriteLine(line);
+			Console.ForegroundColor = foregroundColor;
 		}
 
-	    private static void PrintPossibilities(Int32[] cellPossibilities, Int32 row, Int32 column)
+		private static void PrintPossibilities(Int32[] cellPossibilities, Int32 row, Int32 column)
 		{
-			var bigRow = row * 3;
-			var bigColumn = column * 7;
+			var bigRow = row * RowMultiplier + 1;
+			var bigColumn = column * ColumnMultiplier + 2;
 			
 			Console.SetCursorPosition(bigColumn, bigRow);
-			for (var i = 0; i != 3; i++)
+			for (var i = 0; i != SubgridSize; i++)
 			{
-				for (var j = 0; j != 3; j++)
+				for (var j = 0; j != SubgridSize; j++)
 				{
 					Console.SetCursorPosition(bigColumn + j * 2, bigRow + i);
 					Console.Write(cellPossibilities.Contains((i + 1) * (j + 1)) ? ((i + 1) * (j + 1)).ToString() : " ");
@@ -183,8 +236,8 @@ namespace SudokuSolver
 			if (!ValidCellValues.Contains(number))
 				throw new ArgumentOutOfRangeException();
 
-		    var bigRow = row * 3;
-		    var bigColumn = column * 7;
+		    var bigRow = row * RowMultiplier + 1;
+		    var bigColumn = column * ColumnMultiplier + 2;
 
 		    var numbers = new[]
 		    {
@@ -202,9 +255,9 @@ namespace SudokuSolver
 				},
 			    new []
 			    {
-					"────┐",
+					" ───┐",
 					" ───┤",
-					"────┘",
+					" ───┘",
 			    },
 			    new []
 			    {
@@ -243,8 +296,65 @@ namespace SudokuSolver
 					" ───┘",
 				}
 			};
+			numbers = new[]
+		    {
+			    new []
+			    {
+					" ═╗ ",
+					"  ║ ",
+					" ═╩═ "
+				},
+			    new []
+				{
+					" ═══╗",
+					"╔═══╝",
+					"╚═══ ",
+				},
+			    new []
+				{
+					" ═══╗",
+					" ═══╣",
+					" ═══╝",
+				},
+			    new []
+				{
+					"║   ║",
+					"╚═══╣",
+					"    ║",
+				},
+			    new []
+				{
+					"╔═══ ",
+					"╚═══╗",
+					" ═══╝",
+				},
+			    new []
+				{
+					"╔═══ ",
+					"╠═══╗",
+					"╚═══╝",
+				},
+			    new []
+				{
+					"╔═══╗",
+					"    ║",
+					"    ║",
+				},
+			    new []
+			    {
+					"╔═══╗",
+					"╠═══╣",
+					"╚═══╝",
+			    },
+			    new []
+				{
+					"╔═══╗",
+					"╚═══╣",
+					" ═══╝",
+				}
+		    };
 
-			for (var i = 0; i != 3; i++)
+			for (var i = 0; i != SubgridSize; i++)
 			{
 				Console.SetCursorPosition(bigColumn, bigRow + i);
 				Console.WriteLine(numbers[number - 1][i]);
