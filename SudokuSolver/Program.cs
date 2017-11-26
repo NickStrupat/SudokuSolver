@@ -3,47 +3,68 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 
 namespace SudokuSolver
 {
     class Program
     {
-        class Cell
+		private const Int32 BoardSize = 9;
+		private static readonly Int32 SubgridSize = (Int32)Math.Sqrt(BoardSize);
+		private static readonly Int32[] ValidCellValues = Enumerable.Range(1, BoardSize).ToArray();
+		private static readonly Int32[] ValidCellIndexes = Enumerable.Range(0, BoardSize).ToArray();
+
+	    private static void ArgumentRangeCheck(Int32 argument, String argumentName, Int32 fromInclusive, Int32 toInclusive)
+		{
+			if (argument < fromInclusive || argument > toInclusive)
+				throw new ArgumentOutOfRangeException(argumentName, $"{argumentName} must be in the range [{fromInclusive}, {toInclusive}]. Value `{argument}` is outside that range.");
+		}
+
+		class Cell
+		{
+			public Int32[] Possibilities;
+
+	        public Int32 Answer => Possibilities.Count(x => x != 0) == 1 ? Possibilities.Single(x => x != 0) : 0;
+
+			public Cell()
+			{
+				Possibilities = ValidCellValues;
+			}
+
+	        public Cell(Int32 answer)
+	        {
+		        ArgumentRangeCheck(answer, nameof(answer), 1, 9);
+				Possibilities = new[] { answer };
+			}
+
+			public override String ToString() => String.Join(", ", Possibilities);
+		}
+
+        class Board
         {
-            public Byte Answer;
-            public Byte[] Possibilities;
+			public readonly Cell[,] Cells;
 
-            public Cell(byte answer = 0) => Answer = answer;
+	        //public readonly Cell[] GetRow(Int32 row) => ;
+	        //public readonly Cell[][] Columns;
+	        //public readonly Cell[,][,] SubGrids;
 
-            //private readonly BitVector32 possibilities;
-
-            //public IEnumerable<Byte> Possibilities => Enumerable.Range(0, 8).Select(x => possibilities[x]).Select(((b, i) => b ? i : -1)).Where(x => x != -1).Cast<Byte>();
-        }
-
-        struct Board
-        {
-            public readonly Cell[,] Cells;
-
-            public Board(Cell[,] array)
-            {
-                if (array.GetLength(0) != 9 || array.GetLength(1) != 9 || array.Cast<Cell>().Any(x => x == null))
-                    throw new Exception();
-                Cells = array;
-            }
+			public Board()
+			{
+				Cells = new Cell[BoardSize, BoardSize];
+				foreach (var row in ValidCellIndexes)
+					foreach (var column in ValidCellIndexes)
+						Cells[row, column] = new Cell();
+			}
         }
 
         static void Main(string[] args)
         {
-            var cells = new Cell[9, 9];
-            for (var i = 0; i < cells.GetLength(0); i++)
-                for (var j = 0; j < cells.GetLength(1); j++)
-                    cells[i,j] = new Cell();
-            var board = new Board(cells);
+            var board = new Board();
             var boardLines = File.ReadAllLines("board.txt").ToList();
-            for (var i = 0; i != 9; i++)
-                for (var j = 0; j != 9; j++)
-                    if (Char.IsNumber(boardLines[i][j]))
-                        board.Cells[i, j] = new Cell((Byte) (boardLines[i][j] - '0'));
+	        foreach (var row in ValidCellIndexes)
+				foreach (var column in ValidCellIndexes)
+					if (Char.IsNumber(boardLines[row][column]))
+						board.Cells[row, column] = new Cell((Byte) (boardLines[row][column] - '0'));
             Print(board);
             Solve(board);
             Console.WriteLine();
@@ -53,68 +74,182 @@ namespace SudokuSolver
 
         private static void Solve(Board board)
         {
-            Boolean changed;
-            do
-            {
-                changed = false;
-                for (var i = 0; i != 9; i++)
-                {
-                    for (var j = 0; j != 9; j++)
-                    {
-                        var cell = board.Cells[i, j];
-                        //if (/*cell.Answer == 0 && */cell.Possibilities == null)
-                        {
-                            // this cell hasn't been evaluated for possibilities yet
-                            var otherRowCells = Enumerable.Range(0, 9).Where(x => x != i).Select(x => board.Cells[j, x]).ToArray();
-                            var otherColumnCells = Enumerable.Range(0, 9).Where(x => x != j).Select(x => board.Cells[x, i]).ToArray();
-                            var otherSubGridCells = new Cell[8];
-                            var index = 0;
-                            for (var i2 = i / 3 * 3; i2 != i / 3 * 3 + 3; i2++)
-                                for (var j2 = j / 3 * 3; j2 != j / 3 * 3 + 3; j2++)
-                                    if (i2 != i || j2 != j)
-                                    {
-                                        //Console.WriteLine(i2 + " " + j2);
-                                        otherSubGridCells[index++] = board.Cells[i2, j2];
-                                    }
-                            var obviousImpossibilities = otherRowCells.Concat(otherColumnCells).Concat(otherSubGridCells).Where(x => x.Answer != 0).Distinct().ToArray();
-                            var inferredPossibilities = otherRowCells.Concat(otherColumnCells).Concat(otherSubGridCells).Select(x => x.Possibilities).SelectMany(x => x ?? Array.Empty<byte>()).Distinct().ToArray();
-                            var obviousPossibleAnswers = Enumerable.Range(1, 9).Select(x => (byte)x).Except(obviousImpossibilities.Select(x => x.Answer)).ToArray();
-                            var inferredPossibleAnswers = obviousPossibleAnswers.Concat(inferredPossibilities).Distinct().ToArray();
-                            if (obviousPossibleAnswers.Length == 1)
-                            {
-                                changed = true;
-                                cell.Answer = obviousPossibleAnswers.Single();
-                                cell.Possibilities = Array.Empty<Byte>();
-                            }
-                            else
-                            {
-                                cell.Possibilities = obviousPossibleAnswers;
-                            }
-                        }
-                    }
-                }
-            } while (changed);
-        }
+			Boolean changed;
+			while (board.Cells.Cast<Cell>().Any(x => x.Possibilities.Length != 1))
+			//do
+			{
+				var unsolvedCells = board.Cells.Cast<Cell>().Where(x => x.Possibilities.Length != 1).ToArray();
+				changed = false;
+				foreach (var row in ValidCellIndexes)
+				{
+					foreach (var column in ValidCellIndexes)
+					{
+						var cell = board.Cells[row, column];
+						if (cell.Answer != 0)
+							continue;
+						var otherRowCells = ValidCellIndexes.Where(x => x != row).Select(x => board.Cells[row, x]).ToArray();
+						var otherColumnCells = ValidCellIndexes.Where(x => x != column).Select(x => board.Cells[row, column]).ToArray();
+						var otherSubGridCells = GetOtherSubGridCells(board, row, column);
+						var obviousImpossibilities = otherRowCells.Concat(otherColumnCells).Concat(otherSubGridCells).Where(x => x.Answer != 0).Distinct().ToArray();
+						var inferredPossibilities = otherRowCells.Concat(otherColumnCells).Concat(otherSubGridCells).Select(x => x.Possibilities).SelectMany(x => x).Distinct();
+						var obviousPossibleAnswers = ValidCellValues.Except(obviousImpossibilities.Select(x => x.Answer)).ToArray();
+						var inferredPossibleAnswers = obviousPossibleAnswers.Concat(inferredPossibilities).Distinct().ToArray();
+						cell.Possibilities = obviousPossibleAnswers;
+					}
+				}
+			} //while (changed);
+		}
 
-        //private static void CheckIfRowHas(Byte b, Byte?[,] board)
+	    private static Cell[] GetOtherSubGridCells(Board board, Int32 row, Int32 column)
+	    {
+		    var otherSubGridCells = new Cell[BoardSize - 1];
+		    var i = 0;
+		    var subgridRowIndex = row / SubgridSize * SubgridSize;
+		    var subgridColumnIndex = column / SubgridSize * SubgridSize;
+			for (var subGridRow = subgridRowIndex; subGridRow != subgridRowIndex + 3; subGridRow++)
+				for (var subGridColumn = subgridColumnIndex; subGridColumn != subgridColumnIndex + 3; subGridColumn++)
+					if (subGridRow != row || subGridColumn != column)
+						otherSubGridCells[i++] = board.Cells[subGridRow, subGridColumn];
+		    return otherSubGridCells;
+	    }
+
+	    //private static void CheckIfRowHas(Byte b, Byte?[,] board)
         //{
             
         //}
 
         private static void Print(Board board)
         {
-            for (var i = 0; i != 9; i++)
-            {
-                for (var j = 0; j != 9; j++)
-                {
-                    var answer = board.Cells[i, j].Answer;
-                    Console.Write(answer != 0 ? (Char) ('0' + answer) : '-');
-                    Console.Write(j == 2 || j == 5 ? " | " : " ");
-                }
-                Console.WriteLine();
-                if (i == 2 || i == 5)
-                    Console.WriteLine("------|-------|------");
-            }
-        }
-    }
+   //         for (var i = 0; i != BoardSize; i++)
+   //         {
+   //             for (var j = 0; j != BoardSize; j++)
+   //             {
+   //                 var answer = board.Cells[i, j].Answer;
+   //                 Console.Write(answer != 0 ? (Char) ('0' + answer) : '-');
+   //                 Console.Write(j == 2 || j == 5 ? " | " : " ");
+   //             }
+   //             Console.WriteLine();
+   //             if (i == 2 || i == 5)
+   //                 Console.WriteLine("-------|-------|------");
+			//}
+
+			//Console.Clear();
+	  //      Console.WriteLine();
+
+			foreach (var row in ValidCellIndexes)
+	        {
+		        foreach (var column in ValidCellIndexes)
+				{
+					var cell = board.Cells[row, column];
+					if (cell.Answer != 0)
+						PrintBigNumber(cell.Answer, row, column);
+					else
+						PrintPossibilities(cell.Possibilities, row, column);
+					//Console.Write(answer != 0 ? (Char)('0' + answer) : '-');
+					//Console.Write(column == SubgridSize - 1 || column == SubgridSize * 2 - 1 ? " | " : " ");
+				}
+				//0x6a j ┘   ┐
+				//0x6b k ┐   │
+				//0x6c l ┌   │
+				//0x6d m └
+				//0x6e n ┼
+				//0x71 q ─
+				//0x74 t ├
+				//0x75 u ┤
+				//0x76 v ┴
+				//0x77 w ┬
+				//0x78 x │
+			}
+		}
+
+	    private static void PrintPossibilities(Int32[] cellPossibilities, Int32 row, Int32 column)
+		{
+			var bigRow = row * 3;
+			var bigColumn = column * 7;
+			
+			Console.SetCursorPosition(bigColumn, bigRow);
+			for (var i = 0; i != 3; i++)
+			{
+				for (var j = 0; j != 3; j++)
+				{
+					Console.SetCursorPosition(bigColumn + j * 2, bigRow + i);
+					Console.Write(cellPossibilities.Contains((i + 1) * (j + 1)) ? ((i + 1) * (j + 1)).ToString() : " ");
+				}
+			}
+		}
+
+	    private static void PrintBigNumber(Int32 number, Int32 row, Int32 column)
+	    {
+			if (!ValidCellValues.Contains(number))
+				throw new ArgumentOutOfRangeException();
+
+		    var bigRow = row * 3;
+		    var bigColumn = column * 7;
+
+		    var numbers = new[]
+		    {
+			    new []
+			    {
+					" ─┐ ",
+					"  │ ",
+					" ─┴─ "
+				},
+			    new []
+			    {
+					" ───┐",
+					"┌───┘",
+					"└─── "
+				},
+			    new []
+			    {
+					"────┐",
+					" ───┤",
+					"────┘",
+			    },
+			    new []
+			    {
+					"│   │",
+					"└───┤",
+					"    │",
+			    },
+			    new []
+				{
+					"┌─── ",
+					"└───┐",
+					" ───┘",
+				},
+			    new []
+				{
+					"┌─── ",
+					"├───┐",
+					"└───┘",
+				},
+			    new []
+				{
+					" ───┐",
+					"    │",
+					"    │",
+				},
+			    new []
+				{
+					"┌───┐",
+					"├───┤",
+					"└───┘",
+				},
+			    new []
+				{
+					"┌───┐",
+					"└───┤",
+					" ───┘",
+				}
+			};
+
+			for (var i = 0; i != 3; i++)
+			{
+				Console.SetCursorPosition(bigColumn, bigRow + i);
+				Console.WriteLine(numbers[number - 1][i]);
+			}
+
+	    }
+	}
 }
