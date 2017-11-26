@@ -67,7 +67,9 @@ namespace SudokuSolver
 				foreach (var column in ValidCellIndexes)
 					if (Char.IsNumber(boardLines[row][column]))
 						board.Cells[row, column] = new Cell((Byte) (boardLines[row][column] - '0'));
-            Print(board);
+	        Console.Clear();
+	        PrintGrid();
+			Print(board);
 			while (!TrySolve(board))
 			{
 				Print(board);
@@ -86,21 +88,20 @@ namespace SudokuSolver
 					var cell = board.Cells[row, column];
 					if (cell.HasAnswer)
 						continue;
-					if (row == 6 && column == 0)
-						;
-					var otherRowCells = ValidCellIndexes.Select(x => board.Cells[row, x]).Where(x => x != cell).ToArray();
-					var otherColumnCells = ValidCellIndexes.Select(x => board.Cells[x, column]).Where(x => x != cell).ToArray();
+
+					var otherRowCells = ValidCellIndexes.Select(x => board.Cells[row, x]).Where(x => x != cell);
+					var otherColumnCells = ValidCellIndexes.Select(x => board.Cells[x, column]).Where(x => x != cell);
 					var otherSubGridCells = GetOtherSubGridCells(board, row, column);
+
 					var obviousImpossibilities = otherRowCells.Concat(otherColumnCells)
-						                                        .Concat(otherSubGridCells)
-						                                        .Where(x => x.HasAnswer)
-						                                        .Select(x => x.Answer)
-						                                        .Distinct()
-						                                        .ToArray();
-					//var inferredPossibilities = otherRowCells.Concat(otherColumnCells).Concat(otherSubGridCells).Select(x => x.Possibilities).SelectMany(x => x).Distinct();
-					var obviousPossibleAnswers = ValidCellValues.Except(obviousImpossibilities).ToArray();
-					//var inferredPossibleAnswers = obviousPossibleAnswers.Concat(inferredPossibilities).Distinct().ToArray();
-					cell.Possibilities = obviousPossibleAnswers;
+						                                      .Concat(otherSubGridCells)
+						                                      .Where(x => x.HasAnswer)
+						                                      .Select(x => x.Answer)
+						                                      .Distinct();
+
+					var obviousPossiblilities = ValidCellValues.Except(obviousImpossibilities)
+					                                           .ToArray();
+					cell.Possibilities = obviousPossiblilities;
 					if (cell.HasAnswer)
 						goto @return;
 				}
@@ -122,39 +123,17 @@ namespace SudokuSolver
 		    return otherSubGridCells;
 	    }
 
-	    //private static void CheckIfRowHas(Byte b, Byte?[,] board)
-        //{
-            
-        //}
-
         private static void Print(Board board)
         {
-   //         for (var i = 0; i != BoardSize; i++)
-   //         {
-   //             for (var j = 0; j != BoardSize; j++)
-   //             {
-   //                 var answer = board.Cells[i, j].Answer;
-   //                 Console.Write(answer != 0 ? (Char) ('0' + answer) : '-');
-   //                 Console.Write(j == 2 || j == 5 ? " | " : " ");
-   //             }
-   //             Console.WriteLine();
-   //             if (i == 2 || i == 5)
-   //                 Console.WriteLine("-------|-------|------");
-			//}
-
-			Console.Clear();
-	        PrintGrid();
 			foreach (var row in ValidCellIndexes)
 	        {
 		        foreach (var column in ValidCellIndexes)
 				{
 					var cell = board.Cells[row, column];
-					if (cell.Answer != 0)
+					if (cell.HasAnswer)
 						PrintBigNumber(cell.Answer, row, column);
 					else
 						PrintPossibilities(cell.Possibilities, row, column);
-					//Console.Write(answer != 0 ? (Char)('0' + answer) : '-');
-					//Console.Write(column == SubgridSize - 1 || column == SubgridSize * 2 - 1 ? " | " : " ");
 				}
 			}
         }
@@ -205,7 +184,7 @@ namespace SudokuSolver
 				"╚═══════╧═══════╧═══════╩═══════╧═══════╧═══════╩═══════╧═══════╧═══════╝",
 			};
 			var foregroundColor = Console.ForegroundColor;
-			Console.ForegroundColor = ConsoleColor.Yellow;
+			Console.ForegroundColor = ConsoleColor.Red;
 			foreach (var line in lines)
 				Console.WriteLine(line);
 			Console.ForegroundColor = foregroundColor;
@@ -217,6 +196,8 @@ namespace SudokuSolver
 			var bigColumn = column * ColumnMultiplier + 2;
 			
 			Console.SetCursorPosition(bigColumn, bigRow);
+			var foregroundColor = Console.ForegroundColor;
+			Console.ForegroundColor = ConsoleColor.Gray;
 			var number = 1;
 			for (var i = 0; i != SubgridSize; i++)
 			{
@@ -227,9 +208,10 @@ namespace SudokuSolver
 					number++;
 				}
 			}
+			Console.ForegroundColor = foregroundColor;
 		}
 
-	    private static void PrintBigNumber(Int32 number, Int32 row, Int32 column)
+		private static void PrintBigNumber(Int32 number, Int32 row, Int32 column)
 	    {
 			if (!ValidCellValues.Contains(number))
 				throw new ArgumentOutOfRangeException();
@@ -241,9 +223,9 @@ namespace SudokuSolver
 		    {
 			    new []
 			    {
-					" ═╗ ",
-					"  ║ ",
-					" ═╩═ "
+					"  ╖  ",
+					"  ║  ",
+					"  ╨  "
 				},
 			    new []
 				{
@@ -259,9 +241,9 @@ namespace SudokuSolver
 				},
 			    new []
 				{
-					"║   ║",
+					"╥   ╥",
 					"╚═══╣",
-					"    ║",
+					"    ╨",
 				},
 			    new []
 				{
@@ -278,8 +260,8 @@ namespace SudokuSolver
 			    new []
 				{
 					"╔═══╗",
-					"    ║",
-					"    ║",
+					"    ╫",
+					"    ╨",
 				},
 			    new []
 			    {
@@ -295,12 +277,14 @@ namespace SudokuSolver
 				}
 		    };
 
+		    var foregroundColor = Console.ForegroundColor;
+		    Console.ForegroundColor = ConsoleColor.White;
 			for (var i = 0; i != SubgridSize; i++)
 			{
 				Console.SetCursorPosition(bigColumn, bigRow + i);
 				Console.WriteLine(numbers[number - 1][i]);
 			}
-
-	    }
+		    Console.ForegroundColor = foregroundColor;
+		}
 	}
 }
