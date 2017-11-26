@@ -238,65 +238,8 @@ namespace SudokuSolver
 
 		    var bigRow = row * RowMultiplier + 1;
 		    var bigColumn = column * ColumnMultiplier + 2;
-
-		    var numbers = new[]
-		    {
-			    new []
-			    {
-					" ─┐ ",
-					"  │ ",
-					" ─┴─ "
-				},
-			    new []
-			    {
-					" ───┐",
-					"┌───┘",
-					"└─── "
-				},
-			    new []
-			    {
-					" ───┐",
-					" ───┤",
-					" ───┘",
-			    },
-			    new []
-			    {
-					"│   │",
-					"└───┤",
-					"    │",
-			    },
-			    new []
-				{
-					"┌─── ",
-					"└───┐",
-					" ───┘",
-				},
-			    new []
-				{
-					"┌─── ",
-					"├───┐",
-					"└───┘",
-				},
-			    new []
-				{
-					" ───┐",
-					"    │",
-					"    │",
-				},
-			    new []
-				{
-					"┌───┐",
-					"├───┤",
-					"└───┘",
-				},
-			    new []
-				{
-					"┌───┐",
-					"└───┤",
-					" ───┘",
-				}
-			};
-			numbers = new[]
+			
+			var numbers = new[]
 		    {
 			    new []
 			    {
