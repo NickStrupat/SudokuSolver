@@ -4,6 +4,7 @@ using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
 
 namespace SudokuSolver
 {
@@ -25,6 +26,7 @@ namespace SudokuSolver
 			public Int32[] Possibilities;
 
 	        public Int32 Answer => Possibilities.Count(x => x != 0) == 1 ? Possibilities.Single(x => x != 0) : 0;
+			public Boolean HasAnswer => Answer != 0;
 
 			public Cell()
 			{
@@ -66,38 +68,45 @@ namespace SudokuSolver
 					if (Char.IsNumber(boardLines[row][column]))
 						board.Cells[row, column] = new Cell((Byte) (boardLines[row][column] - '0'));
             Print(board);
-            Solve(board);
-            Console.WriteLine();
-            Print(board);
-            
+			while (!TrySolve(board))
+			{
+				Print(board);
+				Thread.Sleep(100);
+			}
+
+			Print(board);
         }
 
-        private static void Solve(Board board)
+        private static Boolean TrySolve(Board board)
         {
-			Boolean changed;
-			while (board.Cells.Cast<Cell>().Any(x => x.Possibilities.Length != 1))
-			//do
+			foreach (var row in ValidCellIndexes)
 			{
-				var unsolvedCells = board.Cells.Cast<Cell>().Where(x => x.Possibilities.Length != 1).ToArray();
-				changed = false;
-				foreach (var row in ValidCellIndexes)
+				foreach (var column in ValidCellIndexes)
 				{
-					foreach (var column in ValidCellIndexes)
-					{
-						var cell = board.Cells[row, column];
-						if (cell.Answer != 0)
-							continue;
-						var otherRowCells = ValidCellIndexes.Where(x => x != row).Select(x => board.Cells[row, x]).ToArray();
-						var otherColumnCells = ValidCellIndexes.Where(x => x != column).Select(x => board.Cells[row, column]).ToArray();
-						var otherSubGridCells = GetOtherSubGridCells(board, row, column);
-						var obviousImpossibilities = otherRowCells.Concat(otherColumnCells).Concat(otherSubGridCells).Where(x => x.Answer != 0).Distinct().ToArray();
-						var inferredPossibilities = otherRowCells.Concat(otherColumnCells).Concat(otherSubGridCells).Select(x => x.Possibilities).SelectMany(x => x).Distinct();
-						var obviousPossibleAnswers = ValidCellValues.Except(obviousImpossibilities.Select(x => x.Answer)).ToArray();
-						var inferredPossibleAnswers = obviousPossibleAnswers.Concat(inferredPossibilities).Distinct().ToArray();
-						cell.Possibilities = obviousPossibleAnswers;
-					}
+					var cell = board.Cells[row, column];
+					if (cell.HasAnswer)
+						continue;
+					if (row == 6 && column == 0)
+						;
+					var otherRowCells = ValidCellIndexes.Select(x => board.Cells[row, x]).Where(x => x != cell).ToArray();
+					var otherColumnCells = ValidCellIndexes.Select(x => board.Cells[x, column]).Where(x => x != cell).ToArray();
+					var otherSubGridCells = GetOtherSubGridCells(board, row, column);
+					var obviousImpossibilities = otherRowCells.Concat(otherColumnCells)
+						                                        .Concat(otherSubGridCells)
+						                                        .Where(x => x.HasAnswer)
+						                                        .Select(x => x.Answer)
+						                                        .Distinct()
+						                                        .ToArray();
+					//var inferredPossibilities = otherRowCells.Concat(otherColumnCells).Concat(otherSubGridCells).Select(x => x.Possibilities).SelectMany(x => x).Distinct();
+					var obviousPossibleAnswers = ValidCellValues.Except(obviousImpossibilities).ToArray();
+					//var inferredPossibleAnswers = obviousPossibleAnswers.Concat(inferredPossibilities).Distinct().ToArray();
+					cell.Possibilities = obviousPossibleAnswers;
+					if (cell.HasAnswer)
+						goto @return;
 				}
-			} //while (changed);
+			}
+			@return:
+			return board.Cells.Cast<Cell>().All(x => x.Possibilities.Length == 1);
 		}
 
 	    private static Cell[] GetOtherSubGridCells(Board board, Int32 row, Int32 column)
@@ -133,9 +142,7 @@ namespace SudokuSolver
    //                 Console.WriteLine("-------|-------|------");
 			//}
 
-			//Console.Clear();
-	  //      Console.WriteLine();
-
+			Console.Clear();
 	        PrintGrid();
 			foreach (var row in ValidCellIndexes)
 	        {
@@ -149,17 +156,6 @@ namespace SudokuSolver
 					//Console.Write(answer != 0 ? (Char)('0' + answer) : '-');
 					//Console.Write(column == SubgridSize - 1 || column == SubgridSize * 2 - 1 ? " | " : " ");
 				}
-				//0x6a j ┘   ┐
-				//0x6b k ┐   │
-				//0x6c l ┌   │
-				//0x6d m └
-				//0x6e n ┼
-				//0x71 q ─
-				//0x74 t ├
-				//0x75 u ┤
-				//0x76 v ┴
-				//0x77 w ┬
-				//0x78 x │
 			}
         }
 
@@ -221,12 +217,14 @@ namespace SudokuSolver
 			var bigColumn = column * ColumnMultiplier + 2;
 			
 			Console.SetCursorPosition(bigColumn, bigRow);
+			var number = 1;
 			for (var i = 0; i != SubgridSize; i++)
 			{
 				for (var j = 0; j != SubgridSize; j++)
 				{
 					Console.SetCursorPosition(bigColumn + j * 2, bigRow + i);
-					Console.Write(cellPossibilities.Contains((i + 1) * (j + 1)) ? ((i + 1) * (j + 1)).ToString() : " ");
+					Console.Write(cellPossibilities.Contains(number) ? number.ToString() : " ");
+					number++;
 				}
 			}
 		}
