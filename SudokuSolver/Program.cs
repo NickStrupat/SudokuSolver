@@ -23,6 +23,7 @@ namespace SudokuSolver
 
 		class Cell
 		{
+			public readonly Boolean IsOriginal;
 			public Int32[] Possibilities;
 
 	        public Int32 Answer => Possibilities.Count(x => x != 0) == 1 ? Possibilities.Single(x => x != 0) : 0;
@@ -33,8 +34,9 @@ namespace SudokuSolver
 				Possibilities = ValidCellValues;
 			}
 
-	        public Cell(Int32 answer)
+	        public Cell(Int32 answer, Boolean isOriginal)
 	        {
+		        IsOriginal = isOriginal;
 		        ArgumentRangeCheck(answer, nameof(answer), 1, 9);
 				Possibilities = new[] { answer };
 			}
@@ -66,18 +68,23 @@ namespace SudokuSolver
 	        foreach (var row in ValidCellIndexes)
 				foreach (var column in ValidCellIndexes)
 					if (Char.IsNumber(boardLines[row][column]))
-						board.Cells[row, column] = new Cell((Byte) (boardLines[row][column] - '0'));
-	        Console.Clear();
-	        PrintGrid();
+						board.Cells[row, column] = new Cell((Byte) (boardLines[row][column] - '0'), isOriginal:true);
+	        var backgroundColor = Console.BackgroundColor;
+	        Console.BackgroundColor = ConsoleColor.White;
+	        var foregroundColor = Console.ForegroundColor;
+	        Console.ForegroundColor = ConsoleColor.Black;
+			PrintGrid();
 			Print(board);
 			while (!TrySolve(board))
 			{
 				Print(board);
 				Thread.Sleep(100);
 			}
-
 			Print(board);
-        }
+	        Console.ForegroundColor = foregroundColor;
+	        Console.BackgroundColor = backgroundColor;
+			Console.WriteLine();
+		}
 
         private static Boolean TrySolve(Board board)
         {
@@ -124,19 +131,19 @@ namespace SudokuSolver
 	    }
 
         private static void Print(Board board)
-        {
+		{
 			foreach (var row in ValidCellIndexes)
 	        {
 		        foreach (var column in ValidCellIndexes)
 				{
 					var cell = board.Cells[row, column];
 					if (cell.HasAnswer)
-						PrintBigNumber(cell.Answer, row, column);
+						PrintBigNumber(cell, row, column);
 					else
 						PrintPossibilities(cell.Possibilities, row, column);
 				}
 			}
-        }
+		}
 
 	    const int RowMultiplier = 4;
 	    const int ColumnMultiplier = 8;
@@ -145,49 +152,46 @@ namespace SudokuSolver
 		{
 			var lines = new[]
 			{
-				"╔═══════╤═══════╤═══════╦═══════╤═══════╤═══════╦═══════╤═══════╤═══════╗",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"╟───────┼───────┼───────╫───────┼───────┼───────╫───────┼───────┼───────╢",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"╟───────┼───────┼───────╫───────┼───────┼───────╫───────┼───────┼───────╢",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"╟═══════╪═══════╪═══════╬═══════╪═══════╪═══════╬═══════╪═══════╪═══════╣",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"╟───────┼───────┼───────╫───────┼───────┼───────╫───────┼───────┼───────╢",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"╟───────┼───────┼───────╫───────┼───────┼───────╫───────┼───────┼───────╢",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"╟═══════╪═══════╪═══════╬═══════╪═══════╪═══════╬═══════╪═══════╪═══════╣",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"╟───────┼───────┼───────╫───────┼───────┼───────╫───────┼───────┼───────╢",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"╟───────┼───────┼───────╫───────┼───────┼───────╫───────┼───────┼───────╢",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"║       │       │       ║       │       │       ║       │       │       ║",
-				"╚═══════╧═══════╧═══════╩═══════╧═══════╧═══════╩═══════╧═══════╧═══════╝",
+				"┌───────┬───────┬───────╥───────┬───────┬───────╥───────┬───────┬───────┐",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"├───────┼───────┼───────╫───────┼───────┼───────╫───────┼───────┼───────┤",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"├───────┼───────┼───────╫───────┼───────┼───────╫───────┼───────┼───────┤",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"╞═══════╪═══════╪═══════╬═══════╪═══════╪═══════╬═══════╪═══════╪═══════╡",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"├───────┼───────┼───────╫───────┼───────┼───────╫───────┼───────┼───────┤",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"├───────┼───────┼───────╫───────┼───────┼───────╫───────┼───────┼───────┤",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"╞═══════╪═══════╪═══════╬═══════╪═══════╪═══════╬═══════╪═══════╪═══════╡",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"├───────┼───────┼───────╫───────┼───────┼───────╫───────┼───────┼───────┤",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"├───────┼───────┼───────╫───────┼───────┼───────╫───────┼───────┼───────┤",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"│       │       │       ║       │       │       ║       │       │       │",
+				"└───────┴───────┴───────╨───────┴───────┴───────╨───────┴───────┴───────┘",
 			};
-			var foregroundColor = Console.ForegroundColor;
-			Console.ForegroundColor = ConsoleColor.Red;
 			foreach (var line in lines)
 				Console.WriteLine(line);
-			Console.ForegroundColor = foregroundColor;
 		}
 
 		private static void PrintPossibilities(Int32[] cellPossibilities, Int32 row, Int32 column)
@@ -197,7 +201,7 @@ namespace SudokuSolver
 			
 			Console.SetCursorPosition(bigColumn, bigRow);
 			var foregroundColor = Console.ForegroundColor;
-			Console.ForegroundColor = ConsoleColor.Gray;
+			Console.ForegroundColor = ConsoleColor.Black;
 			var number = 1;
 			for (var i = 0; i != SubgridSize; i++)
 			{
@@ -211,11 +215,8 @@ namespace SudokuSolver
 			Console.ForegroundColor = foregroundColor;
 		}
 
-		private static void PrintBigNumber(Int32 number, Int32 row, Int32 column)
+		private static void PrintBigNumber(Cell cell, Int32 row, Int32 column)
 	    {
-			if (!ValidCellValues.Contains(number))
-				throw new ArgumentOutOfRangeException();
-
 		    var bigRow = row * RowMultiplier + 1;
 		    var bigColumn = column * ColumnMultiplier + 2;
 			
@@ -278,11 +279,11 @@ namespace SudokuSolver
 		    };
 
 		    var foregroundColor = Console.ForegroundColor;
-		    Console.ForegroundColor = ConsoleColor.White;
+		    Console.ForegroundColor = cell.IsOriginal ? ConsoleColor.Black : ConsoleColor.Red;
 			for (var i = 0; i != SubgridSize; i++)
 			{
 				Console.SetCursorPosition(bigColumn, bigRow + i);
-				Console.WriteLine(numbers[number - 1][i]);
+				Console.WriteLine(numbers[cell.Answer - 1][i]);
 			}
 		    Console.ForegroundColor = foregroundColor;
 		}
