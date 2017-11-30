@@ -1,4 +1,5 @@
 ﻿using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
@@ -96,15 +97,16 @@ namespace SudokuSolver
 					if (cell.HasAnswer)
 						continue;
 
-					var otherRowCells = ValidCellIndexes.Select(x => board.Cells[row, x]).Where(x => x != cell);
-					var otherColumnCells = ValidCellIndexes.Select(x => board.Cells[x, column]).Where(x => x != cell);
-					var otherSubGridCells = GetOtherSubGridCells(board, row, column);
+					var rowCells = ValidCellIndexes.Select(x => board.Cells[row, x]);
+					var columnCells = ValidCellIndexes.Select(x => board.Cells[x, column]);
+					var subGridCells = GetOtherSubGridCells(board, row, column);
 
-					var obviousImpossibilities = otherRowCells.Concat(otherColumnCells)
-						                                      .Concat(otherSubGridCells)
-						                                      .Where(x => x.HasAnswer)
-						                                      .Select(x => x.Answer)
-						                                      .Distinct();
+				    var allRelatedCells = rowCells.Concat(columnCells).Concat(subGridCells);
+
+				    var obviousImpossibilities = allRelatedCells.Where(x => x != cell)
+					                                            .Where(x => x.HasAnswer)
+					                                            .Select(x => x.Answer)
+					                                            .Distinct();
 
 					var obviousPossiblilities = ValidCellValues.Except(obviousImpossibilities)
 					                                           .ToArray();
@@ -119,14 +121,13 @@ namespace SudokuSolver
 
 	    private static Cell[] GetOtherSubGridCells(Board board, Int32 row, Int32 column)
 	    {
-		    var otherSubGridCells = new Cell[BoardSize - 1];
+		    var otherSubGridCells = new Cell[BoardSize];
 		    var i = 0;
-		    var subgridRowIndex = row / SubgridSize * SubgridSize;
-		    var subgridColumnIndex = column / SubgridSize * SubgridSize;
-			for (var subGridRow = subgridRowIndex; subGridRow != subgridRowIndex + 3; subGridRow++)
-				for (var subGridColumn = subgridColumnIndex; subGridColumn != subgridColumnIndex + 3; subGridColumn++)
-					if (subGridRow != row || subGridColumn != column)
-						otherSubGridCells[i++] = board.Cells[subGridRow, subGridColumn];
+		    var rowIndex = row / SubgridSize * SubgridSize;
+		    var columnIndex = column / SubgridSize * SubgridSize;
+			for (var subGridRow = rowIndex; subGridRow != rowIndex + 3; subGridRow++)
+				for (var subGridColumn = columnIndex; subGridColumn != columnIndex + 3; subGridColumn++)
+					otherSubGridCells[i++] = board.Cells[subGridRow, subGridColumn];
 		    return otherSubGridCells;
 	    }
 
@@ -137,10 +138,10 @@ namespace SudokuSolver
 		        foreach (var column in ValidCellIndexes)
 				{
 					var cell = board.Cells[row, column];
-					if (cell.HasAnswer)
-						PrintBigNumber(cell, row, column);
-					else
-						PrintPossibilities(cell.Possibilities, row, column);
+				    if (cell.HasAnswer)
+				        PrintBigNumber(cell, row, column);
+				    else
+				        PrintPossibilities(cell.Possibilities, row, column);
 				}
 			}
 		}
