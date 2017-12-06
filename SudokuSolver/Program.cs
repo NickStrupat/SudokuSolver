@@ -23,6 +23,8 @@ namespace SudokuSolver
 
 			Board.PrintGrid();
 	        board.Print();
+            return;
+
 			Thread.Sleep(100);
 			while (!TrySolve(board))
 			{
@@ -41,29 +43,9 @@ namespace SudokuSolver
 			{
 				foreach (var column in Board.ValidCellIndexes)
 				{
-					var cell = board.Cells[row, column];
-					if (cell.HasAnswer)
-						continue;
-
-					var rowCells = Board.ValidCellIndexes.Select(x => board.Cells[row, x]);
-					var columnCells = Board.ValidCellIndexes.Select(x => board.Cells[x, column]);
-					var subGridCells = GetOtherSubGridCells(board, row, column);
-
-				    var allRelatedCells = rowCells.Concat(columnCells).Concat(subGridCells);
-
-				    var obviousImpossibilities = allRelatedCells.Where(x => x != cell)
-					                                            .Where(x => x.HasAnswer)
-					                                            .Select(x => x.Answer)
-					                                            .Distinct();
-
-					var obviousPossiblilities = Board.ValidCellValues.Except(obviousImpossibilities)
-					                                           .ToArray();
-					cell.Possibilities = obviousPossiblilities;
-					if (cell.HasAnswer)
-						goto @return;
+                    // TODO: solve the board here!
 				}
 			}
-			@return:
 			return board.Cells.Cast<Board.Cell>().All(x => x.Possibilities.Length == 1);
 		}
 
